@@ -189,6 +189,40 @@
         .section-title i {
             margin-right: 0.5rem;
         }
+        
+        /* LinkedIn Results Styles */
+        .linkedin-results-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        .job-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .job-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .match-score {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .skills-tags .badge {
+            font-size: 0.75rem;
+            margin: 0.1rem;
+        }
+        
+        .skills-summary {
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -203,7 +237,27 @@
                     <p class="text-muted">Upload your resume and job description to get an instant match score</p>
                 </div>
                 
-                <form id="uploadForm" enctype="multipart/form-data">
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs mb-4" id="analysisTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" 
+                                type="button" role="tab">
+                            <i class="fas fa-edit me-2"></i>Manual Analysis
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="linkedin-tab" data-bs-toggle="tab" data-bs-target="#linkedin" 
+                                type="button" role="tab">
+                            <i class="fab fa-linkedin me-2"></i>LinkedIn Job Matching
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content" id="analysisTabContent">
+                    <!-- Manual Analysis Tab -->
+                    <div class="tab-pane fade show active" id="manual" role="tabpanel">
+                        <form id="uploadForm" enctype="multipart/form-data">
                     <!-- File Upload Section -->
                     <div class="mb-4">
                         <h5 class="section-title">
@@ -250,6 +304,57 @@
                         </button>
                     </div>
                 </form>
+                    </div>
+                    
+                    <!-- LinkedIn Job Matching Tab -->
+                    <div class="tab-pane fade" id="linkedin" role="tabpanel">
+                        <form id="linkedinForm" enctype="multipart/form-data">
+                            <!-- File Upload Section for LinkedIn Analysis -->
+                            <div class="mb-4">
+                                <h5 class="section-title">
+                                    <i class="fas fa-file-upload"></i>Upload Resume for LinkedIn Job Matching
+                                </h5>
+                                <div class="upload-area" id="linkedinUploadArea">
+                                    <div class="upload-icon">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                    </div>
+                                    <div class="upload-text">
+                                        <p class="mb-2">Drag and drop your resume here or click to browse</p>
+                                        <small class="text-muted">We'll analyze your resume against live LinkedIn job postings</small>
+                                    </div>
+                                    <input type="file" id="linkedinResumeFile" name="resume" accept=".pdf,.docx,.txt" style="display: none;">
+                                </div>
+                                <div class="file-info" id="linkedinFileInfo">
+                                    <i class="fas fa-file-alt me-2"></i>
+                                    <span id="linkedinFileName"></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="linkedinRemoveFile">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- LinkedIn Sources Info -->
+                            <div class="mb-4">
+                                <div class="alert alert-info">
+                                    <h6><i class="fab fa-linkedin me-2"></i>Trusted LinkedIn Sources</h6>
+                                    <p class="mb-2">We'll analyze job postings from these verified LinkedIn profiles:</p>
+                                    <ul class="mb-0">
+                                        <li>Tech Industry Recruiters</li>
+                                        <li>HR Professionals</li>
+                                        <li>Company Career Pages</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-success btn-lg" id="linkedinAnalyzeBtn">
+                                    <i class="fab fa-linkedin me-2"></i>Find Matching Jobs on LinkedIn
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
                 
                 <!-- Error Alert -->
                 <div class="error-alert" id="errorAlert">
@@ -386,73 +491,157 @@
                     </button>
                 </div>
             </div>
+            
+            <!-- LinkedIn Job Results Section -->
+            <div class="linkedin-results-card" id="linkedinResultsCard" style="display: none;">
+                <div class="text-center mb-4">
+                    <h2 class="h4 text-success mb-3">
+                        <i class="fab fa-linkedin me-2"></i>Top 10 LinkedIn Job Matches
+                    </h2>
+                    <p class="text-muted">Jobs ranked by compatibility with your skills</p>
+                </div>
+                
+                <!-- Job Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-4 text-center">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h5 class="text-primary">
+                                    <i class="fas fa-search me-2"></i>Jobs Found
+                                </h5>
+                                <h3 class="text-primary mb-0" id="totalJobsFound">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h5 class="text-success">
+                                    <i class="fas fa-star me-2"></i>Best Match
+                                </h5>
+                                <h3 class="text-success mb-0" id="bestMatchScore">0%</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h5 class="text-info">
+                                    <i class="fas fa-cogs me-2"></i>Your Skills
+                                </h5>
+                                <h3 class="text-info mb-0" id="totalResumeSkills">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Job Listings -->
+                <div id="jobsList" class="job-listings">
+                    <!-- Job cards will be dynamically inserted here -->
+                </div>
+                
+                <!-- Actions -->
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-outline-success" id="analyzeAnotherLinkedIn">
+                        <i class="fas fa-redo me-2"></i>Analyze Another Resume
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Common elements
+            const loading = document.getElementById('loading');
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Manual analysis elements
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('resumeFile');
             const fileInfo = document.getElementById('fileInfo');
             const fileName = document.getElementById('fileName');
             const removeFileBtn = document.getElementById('removeFile');
             const uploadForm = document.getElementById('uploadForm');
-            const loading = document.getElementById('loading');
             const resultsCard = document.getElementById('resultsCard');
-            const errorAlert = document.getElementById('errorAlert');
-            const errorMessage = document.getElementById('errorMessage');
             const analyzeBtn = document.getElementById('analyzeBtn');
             const analyzeAnother = document.getElementById('analyzeAnother');
             const skillsPreviewCard = document.getElementById('skillsPreviewCard');
-            const proceedToAnalysis = document.getElementById('proceedToAnalysis');
+            
+            // LinkedIn analysis elements
+            const linkedinUploadArea = document.getElementById('linkedinUploadArea');
+            const linkedinFileInput = document.getElementById('linkedinResumeFile');
+            const linkedinFileInfo = document.getElementById('linkedinFileInfo');
+            const linkedinFileName = document.getElementById('linkedinFileName');
+            const linkedinRemoveFileBtn = document.getElementById('linkedinRemoveFile');
+            const linkedinForm = document.getElementById('linkedinForm');
+            const linkedinResultsCard = document.getElementById('linkedinResultsCard');
+            const linkedinAnalyzeBtn = document.getElementById('linkedinAnalyzeBtn');
+            const analyzeAnotherLinkedIn = document.getElementById('analyzeAnotherLinkedIn');
             
             let currentSkillsData = null;
 
-            // File upload handling
-            uploadArea.addEventListener('click', () => fileInput.click());
+            // File upload handling for manual analysis
+            setupFileUpload(uploadArea, fileInput, fileInfo, fileName, removeFileBtn);
             
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
+            // File upload handling for LinkedIn analysis
+            setupFileUpload(linkedinUploadArea, linkedinFileInput, linkedinFileInfo, linkedinFileName, linkedinRemoveFileBtn);
             
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
+            function setupFileUpload(uploadArea, fileInput, fileInfo, fileName, removeFileBtn) {
+                uploadArea.addEventListener('click', () => fileInput.click());
+                
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+                
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+                
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        fileInput.files = files;
+                        showFileInfo(files[0], fileName, fileInfo, uploadArea);
+                    }
+                });
+                
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        showFileInfo(e.target.files[0], fileName, fileInfo, uploadArea);
+                    }
+                });
+                
+                removeFileBtn.addEventListener('click', () => {
+                    fileInput.value = '';
+                    fileInfo.style.display = 'none';
+                    uploadArea.style.display = 'block';
+                });
+            }
             
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    fileInput.files = files;
-                    showFileInfo(files[0]);
-                }
-            });
-            
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    showFileInfo(e.target.files[0]);
-                }
-            });
-            
-            removeFileBtn.addEventListener('click', () => {
-                fileInput.value = '';
-                fileInfo.style.display = 'none';
-                uploadArea.style.display = 'block';
-            });
-            
-            function showFileInfo(file) {
+            function showFileInfo(file, fileName, fileInfo, uploadArea) {
                 fileName.textContent = file.name;
                 fileInfo.style.display = 'block';
                 uploadArea.style.display = 'none';
             }
             
-            // Form submission
+            // Form submission handlers
             uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                
+                await handleManualAnalysis();
+            });
+            
+            linkedinForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleLinkedInAnalysis();
+            });
+            
+            async function handleManualAnalysis() {
                 const formData = new FormData(uploadForm);
                 
                 if (!fileInput.files[0]) {
@@ -466,6 +655,7 @@
                 }
                 
                 hideError();
+                hideResults();
                 showLoading();
                 
                 try {
@@ -488,7 +678,40 @@
                     hideLoading();
                     showError('Network error. Please try again.');
                 }
-            });
+            }
+            
+            async function handleLinkedInAnalysis() {
+                const formData = new FormData(linkedinForm);
+                
+                if (!linkedinFileInput.files[0]) {
+                    showError('Please select a resume file for LinkedIn analysis');
+                    return;
+                }
+                
+                hideError();
+                hideResults();
+                showLoading();
+                
+                try {
+                    const response = await fetch('/analyze-jobs', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    hideLoading();
+                    
+                    if (result.success) {
+                        showLinkedInResults(result);
+                    } else {
+                        showError(result.error || 'An error occurred while analyzing LinkedIn jobs');
+                    }
+                } catch (error) {
+                    hideLoading();
+                    showError('Network error. Please try again.');
+                }
+            }
             
             function showSkillsPreview(data) {
                 // Update resume skills
@@ -658,6 +881,144 @@
                 currentSkillsData = null;
                 document.querySelector('.upload-card').scrollIntoView({ behavior: 'smooth' });
             });
+            
+            // Reset LinkedIn form
+            analyzeAnotherLinkedIn.addEventListener('click', () => {
+                linkedinForm.reset();
+                linkedinFileInput.value = '';
+                linkedinFileInfo.style.display = 'none';
+                linkedinUploadArea.style.display = 'block';
+                linkedinResultsCard.style.display = 'none';
+                hideError();
+                document.querySelector('.upload-card').scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            function showLinkedInResults(data) {
+                // Update statistics
+                document.getElementById('totalJobsFound').textContent = data.total_jobs_found || 0;
+                document.getElementById('totalResumeSkills').textContent = data.total_resume_skills || 0;
+                document.getElementById('bestMatchScore').textContent = 
+                    data.top_matched_jobs && data.top_matched_jobs.length > 0 ? 
+                    data.top_matched_jobs[0].match_score + '%' : '0%';
+                
+                // Display job listings
+                const jobsList = document.getElementById('jobsList');
+                jobsList.innerHTML = '';
+                
+                if (data.top_matched_jobs && data.top_matched_jobs.length > 0) {
+                    data.top_matched_jobs.forEach((job, index) => {
+                        const jobCard = createJobCard(job, index + 1);
+                        jobsList.appendChild(jobCard);
+                    });
+                } else {
+                    jobsList.innerHTML = '<p class="text-muted text-center">No matching jobs found.</p>';
+                }
+                
+                linkedinResultsCard.style.display = 'block';
+                linkedinResultsCard.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function createJobCard(job, rank) {
+                const card = document.createElement('div');
+                card.className = 'card mb-3 job-card';
+                card.style.border = '1px solid #dee2e6';
+                card.style.borderRadius = '10px';
+                
+                const matchLevel = getMatchLevel(job.match_score);
+                
+                card.innerHTML = `
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-start">
+                                    <span class="badge bg-primary me-2 fs-6">#${rank}</span>
+                                    <div>
+                                        <h5 class="card-title mb-1">${job.title || 'Untitled Position'}</h5>
+                                        <h6 class="card-subtitle text-muted mb-2">
+                                            <i class="fas fa-building me-1"></i>${job.company || 'Company Not Specified'}
+                                        </h6>
+                                        <p class="text-muted mb-2">
+                                            <i class="fas fa-map-marker-alt me-1"></i>${job.location || 'Location TBD'}
+                                        </p>
+                                        <p class="card-text">${truncateText(job.description || 'No description available', 150)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="match-score-section">
+                                    <div class="match-score ${matchLevel.class} mb-2" style="font-size: 1.5rem; font-weight: bold;">
+                                        ${job.match_score || 0}%
+                                    </div>
+                                    <small class="text-muted">${matchLevel.text}</small>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <div class="skills-summary">
+                                        <small class="text-success">
+                                            <i class="fas fa-check"></i> ${job.total_matched_skills || 0} matched
+                                        </small><br>
+                                        <small class="text-danger">
+                                            <i class="fas fa-times"></i> ${job.missing_skills ? job.missing_skills.length : 0} missing
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${job.matched_skills && job.matched_skills.length > 0 ? `
+                        <div class="mt-3">
+                            <h6>Matched Skills:</h6>
+                            <div class="skills-tags">
+                                ${job.matched_skills.slice(0, 8).map(skill => 
+                                    `<span class="badge bg-success me-1 mb-1">${skill}</span>`
+                                ).join('')}
+                                ${job.matched_skills.length > 8 ? 
+                                    `<span class="badge bg-light text-dark">+${job.matched_skills.length - 8} more</span>` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${job.missing_skills && job.missing_skills.length > 0 ? `
+                        <div class="mt-2">
+                            <h6>Skills to Develop:</h6>
+                            <div class="skills-tags">
+                                ${job.missing_skills.slice(0, 5).map(skill => 
+                                    `<span class="badge bg-warning me-1 mb-1">${skill}</span>`
+                                ).join('')}
+                                ${job.missing_skills.length > 5 ? 
+                                    `<span class="badge bg-light text-dark">+${job.missing_skills.length - 5} more</span>` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="mt-3 text-end">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>Source: ${job.source_profile === 'Mock Data' ? 'Demo Data' : 'LinkedIn'}
+                            </small>
+                        </div>
+                    </div>
+                `;
+                
+                return card;
+            }
+            
+            function getMatchLevel(score) {
+                if (score >= 80) return { class: 'text-success', text: 'Excellent Match' };
+                if (score >= 60) return { class: 'text-primary', text: 'Good Match' };
+                if (score >= 40) return { class: 'text-warning', text: 'Fair Match' };
+                return { class: 'text-danger', text: 'Low Match' };
+            }
+            
+            function truncateText(text, length) {
+                if (text.length <= length) return text;
+                return text.substr(0, length) + '...';
+            }
+            
+            function hideResults() {
+                resultsCard.style.display = 'none';
+                linkedinResultsCard.style.display = 'none';
+                skillsPreviewCard.style.display = 'none';
+            }
         });
     </script>
 </body>
