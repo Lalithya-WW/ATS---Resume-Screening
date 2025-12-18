@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Screening System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+        }
+        
+        .upload-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin: auto;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #007bff;
+            background: #e7f3ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .upload-icon {
+            font-size: 2rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-text {
+            color: #6c757d;
+            font-size: 1rem;
+        }
+        
+        .file-info {
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .results-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            display: none;
+        }
+        
+        .skills-preview-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            display: none;
+        }
+        
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 1rem;
+        }
+        
+        .score-excellent { background: linear-gradient(45deg, #28a745, #20c997); }
+        .score-good { background: linear-gradient(45deg, #17a2b8, #6610f2); }
+        .score-average { background: linear-gradient(45deg, #ffc107, #fd7e14); }
+        .score-poor { background: linear-gradient(45deg, #dc3545, #e83e8c); }
+        
+        .skill-badge {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 0.2rem;
+        }
+        
+        .skill-badge.matched { background: #28a745; }
+        .skill-badge.missing { background: #dc3545; }
+        .skill-badge.additional { background: #6c757d; }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-alert {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            padding: 0.75rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .section-title {
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="container">
+            <!-- Upload Form -->
+            <div class="upload-card">
+                <div class="text-center mb-4">
+                    <h1 class="h2 text-primary mb-2">
+                        <i class="fas fa-search me-2"></i>Resume Screening System
+                    </h1>
+                    <p class="text-muted">Upload your resume and job description to get an instant match score</p>
+                </div>
+                
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <!-- File Upload Section -->
+                    <div class="mb-4">
+                        <h5 class="section-title">
+                            <i class="fas fa-file-upload"></i>Upload Resume
+                        </h5>
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <div class="upload-text">
+                                <p class="mb-2">Drag and drop your resume here or click to browse</p>
+                                <small class="text-muted">Supports PDF, DOCX, and TXT files (max 16MB)</small>
+                            </div>
+                            <input type="file" id="resumeFile" name="resume" accept=".pdf,.docx,.txt" style="display: none;">
+                        </div>
+                        <div class="file-info" id="fileInfo">
+                            <i class="fas fa-file-alt me-2"></i>
+                            <span id="fileName"></span>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="removeFile">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Job Description Section -->
+                    <div class="mb-3">
+                        <h5 class="section-title">
+                            <i class="fas fa-briefcase"></i>Job Description
+                        </h5>
+                        <textarea 
+                            class="form-control" 
+                            id="jobDescription" 
+                            name="job_description" 
+                            rows="6" 
+                            placeholder="Paste the job description here. Include required skills, qualifications, and responsibilities..."
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg" id="analyzeBtn">
+                            <i class="fas fa-chart-line me-2"></i>Analyze Resume Match
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Error Alert -->
+                <div class="error-alert" id="errorAlert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="errorMessage"></span>
+                </div>
+                
+                <!-- Loading State -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p class="text-muted">Analyzing resume and calculating match score...</p>
+                </div>
+            </div>
+            
+            <!-- Skills Preview Section -->
+            <div class="skills-preview-card" id="skillsPreviewCard">
+                <div class="text-center mb-3">
+                    <h2 class="h4 text-primary mb-3">
+                        <i class="fas fa-list-check me-2"></i>Technical Skills Extracted
+                    </h2>
+                    <p class="text-muted small">Only technical skills are analyzed for matching</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light h-100">
+                            <div class="card-body">
+                                <h5 class="text-success mb-3">
+                                    <i class="fas fa-user me-2"></i>Resume Technical Skills
+                                </h5>
+                                <div id="resumeSkillsList"></div>
+                                <small class="text-muted mt-2 d-block">Found <span id="resumeSkillsCount">0</span> technical skills</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light h-100">
+                            <div class="card-body">
+                                <h5 class="text-primary mb-3">
+                                    <i class="fas fa-briefcase me-2"></i>Job Technical Requirements
+                                </h5>
+                                <div id="jobSkillsList"></div>
+                                <small class="text-muted mt-2 d-block">Found <span id="jobSkillsCount">0</span> technical skills</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-primary" id="proceedToAnalysis">
+                        <i class="fas fa-chart-line me-2"></i>Proceed with Technical Skills Analysis
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="results-card" id="resultsCard">
+                <div class="text-center mb-3">
+                    <h2 class="h4 text-primary mb-3">
+                        <i class="fas fa-poll me-2"></i>Match Analysis Results
+                    </h2>
+                    <div id="scoreCircle" class="score-circle">
+                        <span id="scoreText">0%</span>
+                    </div>
+                    <p class="text-muted mb-2">Overall Match Score</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <div class="card border-0 bg-light h-100">
+                            <div class="card-body">
+                                <h5 class="text-success">
+                                    <i class="fas fa-check-circle me-2"></i>Matched
+                                </h5>
+                                <h3 class="text-success mb-0" id="matchedCount">0</h3>
+                                <small class="text-muted">Skills Found</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="card border-0 bg-light h-100">
+                            <div class="card-body">
+                                <h5 class="text-danger">
+                                    <i class="fas fa-times-circle me-2"></i>Missing
+                                </h5>
+                                <h3 class="text-danger mb-0" id="missingCount">0</h3>
+                                <small class="text-muted">Skills Needed</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="card border-0 bg-light h-100">
+                            <div class="card-body">
+                                <h5 class="text-info">
+                                    <i class="fas fa-plus-circle me-2"></i>Additional
+                                </h5>
+                                <h3 class="text-info mb-0" id="additionalCount">0</h3>
+                                <small class="text-muted">Bonus Skills</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <!-- Matched Skills -->
+                <div class="mb-4" id="matchedSection">
+                    <h5 class="section-title text-success">
+                        <i class="fas fa-check-circle"></i>Matched Skills
+                    </h5>
+                    <div id="matchedSkills"></div>
+                </div>
+                
+                <!-- Missing Skills -->
+                <div class="mb-4" id="missingSection">
+                    <h5 class="section-title text-danger">
+                        <i class="fas fa-times-circle"></i>Missing Skills
+                    </h5>
+                    <div id="missingSkills"></div>
+                </div>
+                
+                <!-- Additional Skills -->
+                <div class="mb-4" id="additionalSection">
+                    <h5 class="section-title text-info">
+                        <i class="fas fa-plus-circle"></i>Additional Skills
+                    </h5>
+                    <div id="additionalSkills"></div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-outline-primary" id="analyzeAnother">
+                        <i class="fas fa-redo me-2"></i>Analyze Another Resume
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('resumeFile');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const removeFileBtn = document.getElementById('removeFile');
+            const uploadForm = document.getElementById('uploadForm');
+            const loading = document.getElementById('loading');
+            const resultsCard = document.getElementById('resultsCard');
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const analyzeAnother = document.getElementById('analyzeAnother');
+            const skillsPreviewCard = document.getElementById('skillsPreviewCard');
+            const proceedToAnalysis = document.getElementById('proceedToAnalysis');
+            
+            let currentSkillsData = null;
+
+            // File upload handling
+            uploadArea.addEventListener('click', () => fileInput.click());
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    showFileInfo(files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    showFileInfo(e.target.files[0]);
+                }
+            });
+            
+            removeFileBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                fileInfo.style.display = 'none';
+                uploadArea.style.display = 'block';
+            });
+            
+            function showFileInfo(file) {
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                uploadArea.style.display = 'none';
+            }
+            
+            // Form submission
+            uploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const formData = new FormData(uploadForm);
+                
+                if (!fileInput.files[0]) {
+                    showError('Please select a resume file');
+                    return;
+                }
+                
+                if (!document.getElementById('jobDescription').value.trim()) {
+                    showError('Please enter a job description');
+                    return;
+                }
+                
+                hideError();
+                showLoading();
+                
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    hideLoading();
+                    
+                    if (result.success) {
+                        currentSkillsData = result;
+                        showSkillsPreview(result);
+                    } else {
+                        showError(result.error || 'An error occurred while processing your resume');
+                    }
+                } catch (error) {
+                    hideLoading();
+                    showError('Network error. Please try again.');
+                }
+            });
+            
+            function showSkillsPreview(data) {
+                // Update resume skills
+                const resumeSkillsList = document.getElementById('resumeSkillsList');
+                const resumeSkillsCount = document.getElementById('resumeSkillsCount');
+                
+                if (data.debug_info && data.debug_info.resume_skills_full.length > 0) {
+                    const resumeSkills = data.debug_info.resume_skills_full;
+                    displaySkillsList(resumeSkillsList, resumeSkills, '#28a745', 'resume');
+                    resumeSkillsCount.textContent = resumeSkills.length;
+                } else {
+                    resumeSkillsList.innerHTML = '<span class="text-muted">No technical skills detected</span>';
+                    resumeSkillsCount.textContent = '0';
+                }
+                
+                // Update job skills
+                const jobSkillsList = document.getElementById('jobSkillsList');
+                const jobSkillsCount = document.getElementById('jobSkillsCount');
+                
+                if (data.debug_info && data.debug_info.job_skills_full.length > 0) {
+                    const jobSkills = data.debug_info.job_skills_full;
+                    displaySkillsList(jobSkillsList, jobSkills, '#007bff', 'job');
+                    jobSkillsCount.textContent = jobSkills.length;
+                } else {
+                    jobSkillsList.innerHTML = '<span class="text-muted">No technical skills detected</span>';
+                    jobSkillsCount.textContent = '0';
+                }
+                
+                // Show skills preview
+                skillsPreviewCard.style.display = 'block';
+                skillsPreviewCard.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function displaySkillsList(container, skills, color, type) {
+                const displayLimit = 15;
+                let html = '';
+                
+                // Show first 15 skills
+                for (let i = 0; i < Math.min(skills.length, displayLimit); i++) {
+                    html += `<span class="skill-badge" style="background: ${color}; color: white; padding: 0.2rem 0.6rem; border-radius: 15px; font-size: 0.75rem; margin: 0.1rem; display: inline-block;">${skills[i]}</span>`;
+                }
+                
+                // Add expandable "show more" if there are more skills
+                if (skills.length > displayLimit) {
+                    const remainingCount = skills.length - displayLimit;
+                    html += `<span class="text-primary show-more-btn" style="cursor: pointer; text-decoration: underline; margin-left: 0.5rem;" data-type="${type}" data-color="${color}">+${remainingCount} more</span>`;
+                    
+                    // Hidden skills container
+                    html += '<div class="hidden-skills" data-type="' + type + '" style="display: none;">';
+                    for (let i = displayLimit; i < skills.length; i++) {
+                        html += `<span class="skill-badge" style="background: ${color}; color: white; padding: 0.2rem 0.6rem; border-radius: 15px; font-size: 0.75rem; margin: 0.1rem; display: inline-block;">${skills[i]}</span>`;
+                    }
+                    html += '</div>';
+                    html += `<span class="text-primary show-less-btn" style="cursor: pointer; text-decoration: underline; margin-left: 0.5rem; display: none;" data-type="${type}">show less</span>`;
+                }
+                
+                container.innerHTML = html;
+                
+                // Add event listeners for show more/less
+                const showMoreBtn = container.querySelector('.show-more-btn');
+                const showLessBtn = container.querySelector('.show-less-btn');
+                const hiddenSkills = container.querySelector('.hidden-skills');
+                
+                if (showMoreBtn) {
+                    showMoreBtn.addEventListener('click', function() {
+                        hiddenSkills.style.display = 'inline';
+                        showMoreBtn.style.display = 'none';
+                        showLessBtn.style.display = 'inline';
+                    });
+                }
+                
+                if (showLessBtn) {
+                    showLessBtn.addEventListener('click', function() {
+                        hiddenSkills.style.display = 'none';
+                        showMoreBtn.style.display = 'inline';
+                        showLessBtn.style.display = 'none';
+                    });
+                }
+            }
+            
+            // Handle proceed to analysis
+            proceedToAnalysis.addEventListener('click', () => {
+                if (currentSkillsData) {
+                    showResults(currentSkillsData);
+                }
+            });
+            
+            function showLoading() {
+                loading.style.display = 'block';
+                analyzeBtn.disabled = true;
+                resultsCard.style.display = 'none';
+            }
+            
+            function hideLoading() {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorAlert.style.display = 'block';
+                setTimeout(() => {
+                    hideError();
+                }, 5000);
+            }
+            
+            function hideError() {
+                errorAlert.style.display = 'none';
+            }
+            
+            function showResults(data) {
+                // Update score circle
+                const scoreCircle = document.getElementById('scoreCircle');
+                const scoreText = document.getElementById('scoreText');
+                
+                scoreText.textContent = data.match_score + '%';
+                
+                // Set score color based on percentage
+                scoreCircle.className = 'score-circle ';
+                if (data.match_score >= 80) {
+                    scoreCircle.classList.add('score-excellent');
+                } else if (data.match_score >= 60) {
+                    scoreCircle.classList.add('score-good');
+                } else if (data.match_score >= 40) {
+                    scoreCircle.classList.add('score-average');
+                } else {
+                    scoreCircle.classList.add('score-poor');
+                }
+                
+                // Update counters
+                document.getElementById('matchedCount').textContent = data.total_matched;
+                document.getElementById('missingCount').textContent = data.missing_skills.length;
+                document.getElementById('additionalCount').textContent = data.additional_skills.length;
+                
+                // Update skill lists
+                updateSkillSection('matchedSkills', data.matched_skills, 'matched');
+                updateSkillSection('missingSkills', data.missing_skills, 'missing');
+                updateSkillSection('additionalSkills', data.additional_skills, 'additional');
+                
+                // Show results
+                resultsCard.style.display = 'block';
+                resultsCard.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function updateSkillSection(elementId, skills, type) {
+                const element = document.getElementById(elementId);
+                
+                if (skills.length === 0) {
+                    element.innerHTML = '<p class="text-muted">None found</p>';
+                    return;
+                }
+                
+                element.innerHTML = skills.map(skill => 
+                    `<span class="skill-badge ${type}">${skill}</span>`
+                ).join('');
+            }
+            
+            // Reset form
+            analyzeAnother.addEventListener('click', () => {
+                uploadForm.reset();
+                fileInput.value = '';
+                fileInfo.style.display = 'none';
+                uploadArea.style.display = 'block';
+                resultsCard.style.display = 'none';
+                skillsPreviewCard.style.display = 'none';
+                hideError();
+                currentSkillsData = null;
+                document.querySelector('.upload-card').scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
