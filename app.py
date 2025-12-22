@@ -698,5 +698,140 @@ def get_sample_jobs():
         'total_jobs': len(sample_jobs)
     })
 
+@app.route('/upload-multiple', methods=['POST'])
+def upload_multiple_resumes():
+    """Handle multiple resume uploads and rank candidates by match score"""
+    
+    # Check if files are uploaded
+    if 'resumes' not in request.files:
+        return jsonify({'error': 'No resume files uploaded'}), 400
+    
+    files = request.files.getlist('resumes')
+    job_description = request.form.get('job_description', '')
+    
+    if not files or len(files) == 0:
+        return jsonify({'error': 'No files selected'}), 400
+    
+    if not job_description.strip():
+        return jsonify({'error': 'Job description is required'}), 400
+    
+    # Extract skills from job description once
+    job_skills = extract_skills_and_keywords(job_description)
+    
+    if not job_skills:
+        return jsonify({'error': 'No technical skills found in job description'}), 400
+    
+    candidates = []
+    errors = []
+    
+    # Process each resume
+    for file in files:
+        if file.filename == '':
+            continue
+        
+        if not allowed_file(file.filename):
+            errors.append(f'{file.filename}: Invalid file type')
+            continue
+        
+        try:
+            # Save the file temporarily
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Extract text from resume
+            resume_text = extract_text_from_file(file_path)
+            
+            if not resume_text.strip():
+                errors.append(f'{filename}: Could not extract text')
+                os.remove(file_path)
+                continue
+            
+            # Extract skills from resume
+            resume_skills = extract_skills_and_keywords(resume_text)
+            
+            # Calculate match score using advanced matching
+            matcher = JobMatcher()
+            match_result = matcher.calculate_advanced_match_score(
+                resume_skills, job_skills, job_description
+            )
+            
+            # Extract candidate name from resume (simple extraction)
+            candidate_name = extract_candidate_name(resume_text, filename)
+            
+            # Store candidate data
+            candidate_data = {
+                'filename': filename,
+                'candidate_name': candidate_name,
+                'match_score': match_result['total_score'],
+                'exact_match_score': match_result['exact_score'],
+                'fuzzy_match_score': match_result['fuzzy_score'],
+                'semantic_match_score': match_result['semantic_score'],
+                'matched_skills': match_result['matched_skills'],
+                'missing_skills': match_result['missing_skills'],
+                'total_required': match_result['total_required'],
+                'total_matched': match_result['total_matched'],
+                'all_resume_skills': resume_skills[:15],  # Limit for display
+                'resume_preview': resume_text[:300] + '...' if len(resume_text) > 300 else resume_text
+            }
+            
+            candidates.append(candidate_data)
+            
+            # Clean up the file
+            os.remove(file_path)
+            
+        except Exception as e:
+            errors.append(f'{file.filename}: {str(e)}')
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            continue
+    
+    if not candidates:
+        return jsonify({
+            'error': 'No valid resumes could be processed',
+            'errors': errors
+        }), 400
+    
+    # Sort candidates by match score (descending)
+    candidates.sort(key=lambda x: x['match_score'], reverse=True)
+    
+    # Return results
+    return jsonify({
+        'success': True,
+        'total_processed': len(candidates),
+        'job_skills': job_skills,
+        'candidates': candidates,
+        'errors': errors if errors else None
+    })
+
+def extract_candidate_name(resume_text, filename):
+    """Extract candidate name from resume text"""
+    lines = resume_text.split('\n')
+    
+    # Try to find name in first few lines
+    for line in lines[:10]:
+        line = line.strip()
+        
+        # Skip empty lines and common headers
+        if not line or len(line) < 3 or len(line) > 50:
+            continue
+        
+        # Skip lines with common resume headers
+        skip_keywords = ['resume', 'cv', 'curriculum vitae', 'profile', 'summary', 
+                        'objective', 'experience', 'education', 'skills', 'contact',
+                        'phone', 'email', 'address', '@']
+        
+        if any(keyword in line.lower() for keyword in skip_keywords):
+            continue
+        
+        # Check if line looks like a name (2-4 words, mostly alphabetic)
+        words = line.split()
+        if 2 <= len(words) <= 4:
+            if all(word.replace('-', '').replace("'", '').isalpha() for word in words):
+                return line
+    
+    # Fallback to filename without extension
+    return filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').title()
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
