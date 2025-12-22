@@ -366,7 +366,23 @@
                     
                     <!-- LinkedIn Job Matching Tab -->
                     <div class="tab-pane fade" id="linkedin" role="tabpanel">
-                        <form id="linkedinForm" enctype="multipart/form-data">
+                        <!-- Mode Selection -->
+                        <div class="mb-4">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="linkedinMode" id="singleLinkedinMode" autocomplete="off" checked>
+                                <label class="btn btn-outline-primary" for="singleLinkedinMode">
+                                    <i class="fas fa-user me-2"></i>Single Resume
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="linkedinMode" id="multipleLinkedinMode" autocomplete="off">
+                                <label class="btn btn-outline-primary" for="multipleLinkedinMode">
+                                    <i class="fas fa-users me-2"></i>Multiple Resumes (Batch Ranking)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Single Resume Form -->
+                        <form id="linkedinForm" enctype="multipart/form-data" style="display: block;">
                             <!-- File Upload Section for LinkedIn Analysis -->
                             <div class="mb-4">
                                 <h5 class="section-title">
@@ -408,6 +424,55 @@
                             <div class="text-center">
                                 <button type="submit" class="btn btn-success btn-lg" id="linkedinAnalyzeBtn">
                                     <i class="fab fa-linkedin me-2"></i>Find Matching Jobs on LinkedIn
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Multiple Resumes + LinkedIn Form -->
+                        <form id="linkedinMultipleForm" enctype="multipart/form-data" style="display: none;">
+                            <!-- Multiple File Upload Section -->
+                            <div class="mb-4">
+                                <h5 class="section-title">
+                                    <i class="fas fa-file-upload"></i>Upload Multiple Candidate Resumes
+                                </h5>
+                                <div class="upload-area" id="linkedinMultipleUploadArea">
+                                    <div class="upload-icon">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                    </div>
+                                    <div class="upload-text">
+                                        <p class="mb-2">Drag and drop multiple resumes here or click to browse</p>
+                                        <small class="text-muted">Upload multiple candidate resumes to rank them against LinkedIn jobs</small>
+                                    </div>
+                                    <input type="file" id="linkedinMultipleResumeFiles" name="resumes" accept=".pdf,.docx,.txt" multiple style="display: none;">
+                                </div>
+                                <div class="file-info" id="linkedinMultipleFileInfo">
+                                    <i class="fas fa-file-alt me-2"></i>
+                                    <span id="linkedinMultipleFileCount">0</span> file(s) selected
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="linkedinRemoveMultipleFiles">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <div id="linkedinMultipleFilesList"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- LinkedIn Sources Info -->
+                            <div class="mb-4">
+                                <div class="alert alert-info">
+                                    <h6><i class="fab fa-linkedin me-2"></i>Intelligent Matching</h6>
+                                    <p class="mb-2">This will:</p>
+                                    <ul class="mb-0">
+                                        <li>Scrape LinkedIn job postings from trusted sources</li>
+                                        <li>Rank all candidates for each job posting</li>
+                                        <li>Show you the best candidate for each job</li>
+                                        <li>Show each candidate's best job matches</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-success btn-lg" id="linkedinMultipleAnalyzeBtn">
+                                    <i class="fas fa-trophy me-2"></i>Rank Candidates Against LinkedIn Jobs
                                 </button>
                             </div>
                         </form>
@@ -606,6 +671,83 @@
                 </div>
             </div>
             
+            <!-- LinkedIn Multiple Resumes Results Section -->
+            <div class="linkedin-results-card" id="linkedinMultipleResultsCard" style="display: none;">
+                <div class="text-center mb-4">
+                    <h2 class="h4 text-success mb-3">
+                        <i class="fab fa-linkedin me-2"></i>LinkedIn Job Matches with Candidate Rankings
+                    </h2>
+                    <p class="text-muted">Best matches between candidates and LinkedIn job postings</p>
+                </div>
+                
+                <!-- Summary Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-6 text-center">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h5 class="text-primary">
+                                    <i class="fas fa-users me-2"></i>Candidates Analyzed
+                                </h5>
+                                <h3 class="text-primary mb-0" id="linkedinTotalCandidates">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h5 class="text-success">
+                                    <i class="fas fa-briefcase me-2"></i>LinkedIn Jobs Found
+                                </h5>
+                                <h3 class="text-success mb-0" id="linkedinTotalJobs">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Best Overall Match -->
+                <div class="alert alert-success mb-4" id="linkedinBestMatchAlert">
+                    <h5><i class="fas fa-star me-2"></i>Best Overall Match</h5>
+                    <p class="mb-0"><strong id="linkedinBestCandidate">-</strong> is the top match for <strong id="linkedinBestJob">-</strong> with a score of <strong id="linkedinBestScore">0%</strong></p>
+                </div>
+                
+                <!-- Tab Navigation for Results -->
+                <ul class="nav nav-tabs mb-4" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="jobs-view-tab" data-bs-toggle="tab" data-bs-target="#jobsView" type="button">
+                            <i class="fas fa-briefcase me-2"></i>Jobs with Ranked Candidates
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="candidates-view-tab" data-bs-toggle="tab" data-bs-target="#candidatesView" type="button">
+                            <i class="fas fa-users me-2"></i>Candidates with Top Jobs
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content">
+                    <!-- Jobs View -->
+                    <div class="tab-pane fade show active" id="jobsView" role="tabpanel">
+                        <div id="linkedinJobsWithCandidates">
+                            <!-- Jobs with ranked candidates will be inserted here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Candidates View -->
+                    <div class="tab-pane fade" id="candidatesView" role="tabpanel">
+                        <div id="linkedinCandidatesWithJobs">
+                            <!-- Candidates with top jobs will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-outline-success" id="analyzeMoreLinkedInBatch">
+                        <i class="fas fa-redo me-2"></i>Analyze More Candidates
+                    </button>
+                </div>
+            </div>
+            
             <!-- Candidate Ranking Results Section -->
             <div class="linkedin-results-card" id="candidateRankingCard" style="display: none;">
                 <div class="text-center mb-4">
@@ -705,6 +847,20 @@
             const linkedinAnalyzeBtn = document.getElementById('linkedinAnalyzeBtn');
             const analyzeAnotherLinkedIn = document.getElementById('analyzeAnotherLinkedIn');
             
+            // LinkedIn Multiple Resumes elements
+            const singleLinkedinMode = document.getElementById('singleLinkedinMode');
+            const multipleLinkedinMode = document.getElementById('multipleLinkedinMode');
+            const linkedinMultipleForm = document.getElementById('linkedinMultipleForm');
+            const linkedinMultipleUploadArea = document.getElementById('linkedinMultipleUploadArea');
+            const linkedinMultipleFileInput = document.getElementById('linkedinMultipleResumeFiles');
+            const linkedinMultipleFileInfo = document.getElementById('linkedinMultipleFileInfo');
+            const linkedinMultipleFileCount = document.getElementById('linkedinMultipleFileCount');
+            const linkedinRemoveMultipleFilesBtn = document.getElementById('linkedinRemoveMultipleFiles');
+            const linkedinMultipleFilesList = document.getElementById('linkedinMultipleFilesList');
+            const linkedinMultipleResultsCard = document.getElementById('linkedinMultipleResultsCard');
+            const analyzeMoreLinkedInBatch = document.getElementById('analyzeMoreLinkedInBatch');
+            let linkedinSelectedFiles = [];
+            
             // Multiple resumes elements
             const multipleUploadArea = document.getElementById('multipleUploadArea');
             const multipleFileInput = document.getElementById('multipleResumeFiles');
@@ -726,8 +882,26 @@
             // File upload handling for LinkedIn analysis
             setupFileUpload(linkedinUploadArea, linkedinFileInput, linkedinFileInfo, linkedinFileName, linkedinRemoveFileBtn);
             
+            // Mode switching for LinkedIn tab
+            singleLinkedinMode.addEventListener('change', () => {
+                if (singleLinkedinMode.checked) {
+                    linkedinForm.style.display = 'block';
+                    linkedinMultipleForm.style.display = 'none';
+                }
+            });
+            
+            multipleLinkedinMode.addEventListener('change', () => {
+                if (multipleLinkedinMode.checked) {
+                    linkedinForm.style.display = 'none';
+                    linkedinMultipleForm.style.display = 'block';
+                }
+            });
+            
             // Multiple file upload handling
             setupMultipleFileUpload();
+            
+            // LinkedIn Multiple files upload handling
+            setupLinkedInMultipleFileUpload();
             
             function setupMultipleFileUpload() {
                 multipleUploadArea.addEventListener('click', () => multipleFileInput.click());
@@ -760,6 +934,56 @@
                     multipleFilesList.innerHTML = '';
                     multipleUploadArea.style.display = 'block';
                 });
+            }
+            
+            function setupLinkedInMultipleFileUpload() {
+                linkedinMultipleUploadArea.addEventListener('click', () => linkedinMultipleFileInput.click());
+                
+                linkedinMultipleUploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    linkedinMultipleUploadArea.classList.add('dragover');
+                });
+                
+                linkedinMultipleUploadArea.addEventListener('dragleave', () => {
+                    linkedinMultipleUploadArea.classList.remove('dragover');
+                });
+                
+                linkedinMultipleUploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    linkedinMultipleUploadArea.classList.remove('dragover');
+                    const files = Array.from(e.dataTransfer.files);
+                    handleLinkedInMultipleFiles(files);
+                });
+                
+                linkedinMultipleFileInput.addEventListener('change', (e) => {
+                    const files = Array.from(e.target.files);
+                    handleLinkedInMultipleFiles(files);
+                });
+                
+                linkedinRemoveMultipleFilesBtn.addEventListener('click', () => {
+                    linkedinSelectedFiles = [];
+                    linkedinMultipleFileInput.value = '';
+                    linkedinMultipleFileInfo.style.display = 'none';
+                    linkedinMultipleFilesList.innerHTML = '';
+                    linkedinMultipleUploadArea.style.display = 'block';
+                });
+            }
+            
+            function handleLinkedInMultipleFiles(files) {
+                linkedinSelectedFiles = files;
+                if (files.length > 0) {
+                    linkedinMultipleFileCount.textContent = files.length;
+                    linkedinMultipleFileInfo.style.display = 'block';
+                    linkedinMultipleUploadArea.style.display = 'none';
+                    
+                    // Display file list
+                    let fileListHTML = '<div class="mt-2"><small class="text-muted">Selected files:</small><ul class="list-unstyled mt-1">';
+                    files.forEach(file => {
+                        fileListHTML += `<li><i class="fas fa-file me-2 text-primary"></i>${file.name}</li>`;
+                    });
+                    fileListHTML += '</ul></div>';
+                    linkedinMultipleFilesList.innerHTML = fileListHTML;
+                }
             }
             
             function handleMultipleFiles(files) {
@@ -829,6 +1053,11 @@
             linkedinForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 await handleLinkedInAnalysis();
+            });
+            
+            linkedinMultipleForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleLinkedInMultipleAnalysis();
             });
             
             multipleResumesForm.addEventListener('submit', async (e) => {
@@ -934,6 +1163,7 @@
                 hideError();
                 hideResults();
                 showLoading();
+                loading.querySelector('p').textContent = 'Analyzing resume against LinkedIn job postings...';
                 
                 try {
                     const response = await fetch('/analyze-jobs', {
@@ -953,6 +1183,47 @@
                 } catch (error) {
                     hideLoading();
                     showError('Network error. Please try again.');
+                }
+            }
+            
+            async function handleLinkedInMultipleAnalysis() {
+                if (linkedinSelectedFiles.length === 0) {
+                    showError('Please select at least one resume file');
+                    return;
+                }
+                
+                const formData = new FormData();
+                linkedinSelectedFiles.forEach(file => {
+                    formData.append('resumes', file);
+                });
+                
+                hideError();
+                hideResults();
+                showLoading();
+                loading.querySelector('p').textContent = `Analyzing ${linkedinSelectedFiles.length} candidate(s) against LinkedIn job postings...`;
+                
+                try {
+                    const response = await fetch('/analyze-multiple-with-linkedin', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    hideLoading();
+                    
+                    if (result.success) {
+                        showLinkedInMultipleResults(result);
+                    } else {
+                        showError(result.error || 'An error occurred while analyzing candidates with LinkedIn jobs');
+                        if (result.errors && result.errors.length > 0) {
+                            console.error('Processing errors:', result.errors);
+                        }
+                    }
+                } catch (error) {
+                    hideLoading();
+                    showError('Network error. Please try again.');
+                    console.error('Error:', error);
                 }
             }
             
@@ -1132,6 +1403,19 @@
                 linkedinFileInfo.style.display = 'none';
                 linkedinUploadArea.style.display = 'block';
                 linkedinResultsCard.style.display = 'none';
+                hideError();
+                document.querySelector('.upload-card').scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // Reset LinkedIn Multiple form
+            analyzeMoreLinkedInBatch.addEventListener('click', () => {
+                linkedinMultipleForm.reset();
+                linkedinSelectedFiles = [];
+                linkedinMultipleFileInput.value = '';
+                linkedinMultipleFileInfo.style.display = 'none';
+                linkedinMultipleFilesList.innerHTML = '';
+                linkedinMultipleUploadArea.style.display = 'block';
+                linkedinMultipleResultsCard.style.display = 'none';
                 hideError();
                 document.querySelector('.upload-card').scrollIntoView({ behavior: 'smooth' });
             });
@@ -1385,6 +1669,202 @@
                 return card;
             }
             
+            function showLinkedInMultipleResults(data) {
+                // Update statistics
+                document.getElementById('linkedinTotalCandidates').textContent = data.total_candidates || 0;
+                document.getElementById('linkedinTotalJobs').textContent = data.total_jobs || 0;
+                
+                // Update best match
+                if (data.summary && data.summary.best_overall_match) {
+                    document.getElementById('linkedinBestCandidate').textContent = data.summary.best_overall_match.candidate || '-';
+                    document.getElementById('linkedinBestJob').textContent = data.summary.best_overall_match.job || '-';
+                    document.getElementById('linkedinBestScore').textContent = (data.summary.best_overall_match.score || 0) + '%';
+                }
+                
+                // Display jobs with ranked candidates
+                const jobsContainer = document.getElementById('linkedinJobsWithCandidates');
+                jobsContainer.innerHTML = '';
+                
+                if (data.jobs_with_ranked_candidates && data.jobs_with_ranked_candidates.length > 0) {
+                    data.jobs_with_ranked_candidates.forEach((job, index) => {
+                        const jobCard = createJobWithCandidatesCard(job, index + 1);
+                        jobsContainer.appendChild(jobCard);
+                    });
+                } else {
+                    jobsContainer.innerHTML = '<p class="text-muted text-center">No jobs found.</p>';
+                }
+                
+                // Display candidates with top jobs
+                const candidatesContainer = document.getElementById('linkedinCandidatesWithJobs');
+                candidatesContainer.innerHTML = '';
+                
+                if (data.candidates_with_ranked_jobs && data.candidates_with_ranked_jobs.length > 0) {
+                    data.candidates_with_ranked_jobs.forEach((candidate, index) => {
+                        const candidateCard = createCandidateWithJobsCard(candidate, index + 1);
+                        candidatesContainer.appendChild(candidateCard);
+                    });
+                } else {
+                    candidatesContainer.innerHTML = '<p class="text-muted text-center">No candidates found.</p>';
+                }
+                
+                linkedinMultipleResultsCard.style.display = 'block';
+                linkedinMultipleResultsCard.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function createJobWithCandidatesCard(job, rank) {
+                const card = document.createElement('div');
+                card.className = 'card mb-4';
+                card.style.border = '1px solid #dee2e6';
+                card.style.borderRadius = '10px';
+                
+                const topCandidate = job.candidates && job.candidates.length > 0 ? job.candidates[0] : null;
+                const matchLevel = topCandidate ? getMatchLevel(topCandidate.match_score) : { class: 'text-muted', text: 'No candidates' };
+                
+                let candidatesHTML = '';
+                if (job.candidates && job.candidates.length > 0) {
+                    candidatesHTML = `
+                        <div class="mt-3">
+                            <h6 class="text-success"><i class="fas fa-trophy me-2"></i>Top Candidates:</h6>
+                            ${job.candidates.slice(0, 3).map((candidate, idx) => `
+                                <div class="card mb-2 bg-light">
+                                    <div class="card-body p-2">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-6">
+                                                <strong>${idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'} ${candidate.candidate_name}</strong>
+                                            </div>
+                                            <div class="col-md-3 text-center">
+                                                <span class="${getMatchLevel(candidate.match_score).class} fw-bold">${candidate.match_score}%</span>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-success"><i class="fas fa-check"></i> ${candidate.total_matched}/${candidate.total_required}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${job.candidates.length > 3 ? `<p class="text-muted mb-0">+${job.candidates.length - 3} more candidates</p>` : ''}
+                        </div>
+                    `;
+                }
+                
+                card.innerHTML = `
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-start">
+                                    <span class="badge bg-primary me-2 fs-6">#${rank}</span>
+                                    <div>
+                                        <h5 class="card-title mb-1">${job.title || 'Untitled Position'}</h5>
+                                        <h6 class="card-subtitle text-muted mb-2">
+                                            <i class="fas fa-building me-1"></i>${job.company || 'Company Not Specified'}
+                                        </h6>
+                                        <p class="text-muted mb-2">
+                                            <i class="fas fa-map-marker-alt me-1"></i>${job.location || 'Location TBD'}
+                                        </p>
+                                        <p class="card-text">${truncateText(job.description || 'No description available', 150)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="match-score-section">
+                                    ${topCandidate ? `
+                                        <div class="match-score ${matchLevel.class} mb-2" style="font-size: 1.5rem; font-weight: bold;">
+                                            ${topCandidate.match_score}%
+                                        </div>
+                                        <small class="text-muted">Best candidate match</small>
+                                    ` : '<small class="text-muted">No candidates</small>'}
+                                </div>
+                            </div>
+                        </div>
+                        ${candidatesHTML}
+                    </div>
+                `;
+                
+                return card;
+            }
+            
+            function createCandidateWithJobsCard(candidate, rank) {
+                const card = document.createElement('div');
+                card.className = 'card mb-4';
+                card.style.border = rank <= 3 ? '2px solid #28a745' : '1px solid #dee2e6';
+                card.style.borderRadius = '10px';
+                
+                const matchLevel = getMatchLevel(candidate.best_match_score || 0);
+                const medalIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+                
+                let jobsHTML = '';
+                if (candidate.top_jobs && candidate.top_jobs.length > 0) {
+                    jobsHTML = `
+                        <div class="mt-3">
+                            <h6 class="text-primary"><i class="fas fa-briefcase me-2"></i>Top Job Matches:</h6>
+                            ${candidate.top_jobs.map((job, idx) => `
+                                <div class="card mb-2 bg-light">
+                                    <div class="card-body p-2">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-6">
+                                                <strong>${job.title || 'Untitled'}</strong><br>
+                                                <small class="text-muted">${job.company || 'Company N/A'}</small>
+                                            </div>
+                                            <div class="col-md-3 text-center">
+                                                <span class="${getMatchLevel(job.match_score).class} fw-bold">${job.match_score}%</span>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-success"><i class="fas fa-check"></i> ${job.total_matched}/${job.total_required}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                card.innerHTML = `
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-start">
+                                    <span class="badge ${rank <= 3 ? 'bg-success' : 'bg-primary'} me-2 fs-6">
+                                        #${rank} ${medalIcon}
+                                    </span>
+                                    <div>
+                                        <h5 class="card-title mb-1">${candidate.candidate_name}</h5>
+                                        <h6 class="card-subtitle text-muted mb-2">
+                                            <i class="fas fa-file me-1"></i>${candidate.filename}
+                                        </h6>
+                                        ${candidate.resume_skills && candidate.resume_skills.length > 0 ? `
+                                            <div class="mt-2">
+                                                <small class="text-muted"><strong>Top Skills:</strong></small><br>
+                                                ${candidate.resume_skills.slice(0, 10).map(skill => 
+                                                    `<span class="badge bg-info me-1 mb-1" style="font-size: 0.7rem;">${skill}</span>`
+                                                ).join('')}
+                                                ${candidate.resume_skills.length > 10 ? `<span class="badge bg-light text-dark">+${candidate.resume_skills.length - 10}</span>` : ''}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="match-score-section">
+                                    <div class="match-score ${matchLevel.class} mb-2" style="font-size: 1.5rem; font-weight: bold;">
+                                        ${(candidate.best_match_score || 0).toFixed(2)}%
+                                    </div>
+                                    <small class="${matchLevel.class}">Best Job Match</small>
+                                </div>
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        Avg Match: ${(candidate.average_match_score || 0).toFixed(2)}%
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        ${jobsHTML}
+                    </div>
+                `;
+                
+                return card;
+            }
+            
             // Reset multiple resumes form
             rankMoreCandidates.addEventListener('click', () => {
                 multipleResumesForm.reset();
@@ -1401,6 +1881,7 @@
             function hideResults() {
                 resultsCard.style.display = 'none';
                 linkedinResultsCard.style.display = 'none';
+                linkedinMultipleResultsCard.style.display = 'none';
                 candidateRankingCard.style.display = 'none';
                 skillsPreviewCard.style.display = 'none';
             }
