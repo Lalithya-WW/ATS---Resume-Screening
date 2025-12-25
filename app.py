@@ -833,5 +833,206 @@ def extract_candidate_name(resume_text, filename):
     # Fallback to filename without extension
     return filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').title()
 
+@app.route('/analyze-multiple-with-linkedin', methods=['POST'])
+def analyze_multiple_with_linkedin():
+    """Analyze multiple resumes against LinkedIn job postings and rank both"""
+    
+    # Check if files are uploaded
+    if 'resumes' not in request.files:
+        return jsonify({'error': 'No resume files uploaded'}), 400
+    
+    files = request.files.getlist('resumes')
+    
+    if not files or len(files) == 0:
+        return jsonify({'error': 'No files selected'}), 400
+    
+    # Process each resume and extract skills
+    candidates = []
+    errors = []
+    
+    for file in files:
+        if file.filename == '':
+            continue
+        
+        if not allowed_file(file.filename):
+            errors.append(f'{file.filename}: Invalid file type')
+            continue
+        
+        try:
+            # Save the file temporarily
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Extract text from resume
+            resume_text = extract_text_from_file(file_path)
+            
+            if not resume_text.strip():
+                errors.append(f'{filename}: Could not extract text')
+                os.remove(file_path)
+                continue
+            
+            # Extract skills from resume
+            resume_skills = extract_skills_and_keywords(resume_text)
+            
+            # Extract candidate name
+            candidate_name = extract_candidate_name(resume_text, filename)
+            
+            # Store candidate data
+            candidate_data = {
+                'filename': filename,
+                'candidate_name': candidate_name,
+                'resume_skills': resume_skills,
+                'resume_text': resume_text,
+                'resume_preview': resume_text[:300] + '...' if len(resume_text) > 300 else resume_text
+            }
+            
+            candidates.append(candidate_data)
+            
+            # Clean up the file
+            os.remove(file_path)
+            
+        except Exception as e:
+            errors.append(f'{file.filename}: {str(e)}')
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            continue
+    
+    if not candidates:
+        return jsonify({
+            'error': 'No valid resumes could be processed',
+            'errors': errors
+        }), 400
+    
+    try:
+        # Scrape LinkedIn job postings
+        print(f"DEBUG - Scraping LinkedIn jobs...")
+        scraper = LinkedInJobScraper()
+        jobs = scraper.scrape_linkedin_posts(TRUSTED_LINKEDIN_PROFILES)
+        print(f"DEBUG - Found {len(jobs)} jobs")
+        
+        # Initialize matcher
+        matcher = JobMatcher()
+        
+        # For each job, rank all candidates
+        jobs_with_candidates = []
+        
+        for job in jobs:
+            job_skills = job.get('requirements', [])
+            if isinstance(job_skills, str):
+                job_skills = [job_skills]
+            
+            job_description = job.get('description', '')
+            
+            # Rank all candidates for this job
+            ranked_candidates = []
+            
+            for candidate in candidates:
+                match_result = matcher.calculate_advanced_match_score(
+                    candidate['resume_skills'], 
+                    job_skills, 
+                    job_description
+                )
+                
+                candidate_result = {
+                    'candidate_name': candidate['candidate_name'],
+                    'filename': candidate['filename'],
+                    'match_score': match_result['total_score'],
+                    'exact_match_score': match_result['exact_score'],
+                    'fuzzy_match_score': match_result['fuzzy_score'],
+                    'semantic_match_score': match_result['semantic_score'],
+                    'matched_skills': match_result['matched_skills'],
+                    'missing_skills': match_result['missing_skills'],
+                    'total_required': match_result['total_required'],
+                    'total_matched': match_result['total_matched']
+                }
+                
+                ranked_candidates.append(candidate_result)
+            
+            # Sort candidates by match score for this job
+            ranked_candidates.sort(key=lambda x: x['match_score'], reverse=True)
+            
+            # Add to job
+            job_with_candidates = job.copy()
+            job_with_candidates['candidates'] = ranked_candidates
+            job_with_candidates['top_candidate'] = ranked_candidates[0] if ranked_candidates else None
+            
+            jobs_with_candidates.append(job_with_candidates)
+        
+        # Sort jobs by the best match score (top candidate)
+        jobs_with_candidates.sort(
+            key=lambda x: x['top_candidate']['match_score'] if x['top_candidate'] else 0, 
+            reverse=True
+        )
+        
+        # Also create a candidate-centric view: for each candidate, show their best jobs
+        candidate_job_matches = []
+        
+        for candidate in candidates:
+            candidate_jobs = []
+            
+            for job in jobs:
+                job_skills = job.get('requirements', [])
+                if isinstance(job_skills, str):
+                    job_skills = [job_skills]
+                
+                job_description = job.get('description', '')
+                
+                match_result = matcher.calculate_advanced_match_score(
+                    candidate['resume_skills'], 
+                    job_skills, 
+                    job_description
+                )
+                
+                job_result = job.copy()
+                job_result['match_score'] = match_result['total_score']
+                job_result['exact_match_score'] = match_result['exact_score']
+                job_result['fuzzy_match_score'] = match_result['fuzzy_score']
+                job_result['semantic_match_score'] = match_result['semantic_score']
+                job_result['matched_skills'] = match_result['matched_skills']
+                job_result['missing_skills'] = match_result['missing_skills']
+                job_result['total_required'] = match_result['total_required']
+                job_result['total_matched'] = match_result['total_matched']
+                
+                candidate_jobs.append(job_result)
+            
+            # Sort jobs for this candidate
+            candidate_jobs.sort(key=lambda x: x['match_score'], reverse=True)
+            
+            candidate_match = {
+                'candidate_name': candidate['candidate_name'],
+                'filename': candidate['filename'],
+                'resume_skills': candidate['resume_skills'][:15],
+                'resume_preview': candidate['resume_preview'],
+                'top_jobs': candidate_jobs[:5],  # Top 5 jobs for this candidate
+                'average_match_score': sum(j['match_score'] for j in candidate_jobs) / len(candidate_jobs) if candidate_jobs else 0,
+                'best_match_score': candidate_jobs[0]['match_score'] if candidate_jobs else 0
+            }
+            
+            candidate_job_matches.append(candidate_match)
+        
+        # Sort candidates by their best match score
+        candidate_job_matches.sort(key=lambda x: x['best_match_score'], reverse=True)
+        
+        # Return comprehensive results
+        return jsonify({
+            'success': True,
+            'total_candidates': len(candidates),
+            'total_jobs': len(jobs),
+            'jobs_with_ranked_candidates': jobs_with_candidates[:10],  # Top 10 jobs with ranked candidates
+            'candidates_with_ranked_jobs': candidate_job_matches,  # All candidates with their best jobs
+            'errors': errors if errors else None,
+            'summary': {
+                'best_overall_match': {
+                    'candidate': candidate_job_matches[0]['candidate_name'] if candidate_job_matches else None,
+                    'job': jobs_with_candidates[0]['title'] if jobs_with_candidates else None,
+                    'score': jobs_with_candidates[0]['top_candidate']['match_score'] if jobs_with_candidates and jobs_with_candidates[0]['top_candidate'] else 0
+                }
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error processing LinkedIn jobs: {str(e)}'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
