@@ -1035,4 +1035,4 @@ def analyze_multiple_with_linkedin():
         return jsonify({'error': f'Error processing LinkedIn jobs: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

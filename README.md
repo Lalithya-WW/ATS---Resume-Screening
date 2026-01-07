@@ -93,9 +93,9 @@ python app.py
 ```
 
 4. Open your web browser and go to:
-   - `http://localhost:5000`
-   - `http://127.0.0.1:5000`
-   - `http://192.168.1.7:5000` (from other devices on your network)
+   - `http://localhost:5001`
+   - `http://127.0.0.1:5001`
+   - `http://192.168.1.7:5001` (from other devices on your network)
 
 ### Using the Application
 
